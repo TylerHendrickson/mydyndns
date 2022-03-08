@@ -55,31 +55,8 @@ refresh from and send updates to a remote DNS management service.`,
 }
 
 func bootstrapConfig(cmd *cobra.Command) error {
-	// Determine the effective config file (if any) from the config-file and config-path flags
-	configSearchPath, err := cmd.Flags().GetString("config-path")
-	bugIfError(err, "could not determine the config path")
-
-	var (
-		requireConfigFile = false
-		configFilename    string
-	)
-	if flag := cmd.Flag("config-file"); flag != nil && flag.Changed {
-		requireConfigFile = true
-		configFilename = flag.Value.String()
-	} else if envConfigFile, isSet := os.LookupEnv(fmt.Sprintf("%s_CONFIG_FILE", envPrefix)); isSet {
-		requireConfigFile = true
-		configFilename = envConfigFile
-	}
-
-	if requireConfigFile {
-		if !filepath.IsAbs(configFilename) {
-			configFilename = filepath.Join(configSearchPath, configFilename)
-		}
-		viper.SetConfigFile(configFilename)
-	} else {
-		viper.SetConfigName(defaultConfigFilename)
-		viper.AddConfigPath(configSearchPath)
-	}
+	requireConfigFile, err := bootstrapConfigFile(cmd, viper.GetViper())
+	bugIfError(err, "could not bootstrap config file")
 
 	if err = func() (e error) {
 		// Because not all underlying errors are graceful (the TOML parser seems fragile),
@@ -111,10 +88,7 @@ func bootstrapConfig(cmd *cobra.Command) error {
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
 		// Environment variables can't have dashes in them, so bind them to their equivalent
 		// keys with underscores, e.g. --foo-bar to MYDYNDNS_FOO_BAR
-		if strings.Contains(f.Name, "-") {
-			envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
-			_ = viper.BindEnv(f.Name, fmt.Sprintf("%s_%s", envPrefix, envVarSuffix))
-		}
+		_ = viper.BindEnv(f.Name, flagNameToEnvVar(envPrefix, f.Name))
 
 		// Apply the viper config value to the flag when the flag is not set and viper has a value
 		if !f.Changed && viper.IsSet(f.Name) {
@@ -125,6 +99,53 @@ func bootstrapConfig(cmd *cobra.Command) error {
 	})
 
 	return nil
+}
+
+// bootstrapConfigFile inspects the *cobra.Command flags and environment variables
+// and instructs the *viper.Viper to read configuration from a file based on these settings.
+// The first return value is a boolean which indicates whether a config file is explicitly
+// set (either via flag or environment variables).
+// The second return value is an error that, if non-nil, indicates that the flag could not be determined
+// (due to a typo/bug).
+func bootstrapConfigFile(cmd *cobra.Command, v *viper.Viper) (bool, error) {
+	const (
+		configPathFlagName = "config-path"
+		configFileFlagName = "config-file"
+	)
+
+	configSearchPath, err := cmd.Flags().GetString(configPathFlagName)
+	if err != nil {
+		return false, err
+	}
+	if !cmd.Flag(configPathFlagName).Changed {
+		if envConfigSearchPath, isSet := os.LookupEnv(fmt.Sprintf("%s_CONFIG_PATH", envPrefix)); isSet {
+			configSearchPath = envConfigSearchPath
+		}
+	}
+
+	var explicitConfigFile = false
+	configFilename, err := cmd.Flags().GetString(configFileFlagName)
+	if err != nil {
+		return false, err
+	}
+	if cmd.Flag(configFileFlagName).Changed {
+		explicitConfigFile = true
+	} else if envConfigFile, isSet := os.LookupEnv(fmt.Sprintf("%s_CONFIG_FILE", envPrefix)); isSet {
+		explicitConfigFile = true
+		configFilename = envConfigFile
+	}
+
+	if explicitConfigFile {
+		if !filepath.IsAbs(configFilename) {
+			configFilename = filepath.Join(configSearchPath, configFilename)
+		}
+		v.SetConfigFile(configFilename)
+	} else {
+		v.SetConfigName(defaultConfigFilename)
+		v.AddConfigPath(configSearchPath)
+	}
+
+	return explicitConfigFile, nil
 }
 
 type APIClient interface {
@@ -145,6 +166,12 @@ func bootstrapAPIClient(cmd *cobra.Command) error {
 
 	apiClient = sdk.NewClient(baseURL, apiKey)
 	return nil
+}
+
+// flagNameToEnvVar transforms a flag name to its matching environment variable name.
+func flagNameToEnvVar(envVarPrefix, flagName string) string {
+	envVarSuffix := strings.ReplaceAll(flagName, "-", "_")
+	return fmt.Sprintf("%s_%s", strings.ToUpper(envVarPrefix), strings.ToUpper(envVarSuffix))
 }
 
 // bugIfError panics unless err is nil.
