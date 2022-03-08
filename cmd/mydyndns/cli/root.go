@@ -1,0 +1,156 @@
+package cli
+
+import (
+	"context"
+	"fmt"
+	"net"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+
+	"github.com/TylerHendrickson/mydyndns/pkg/sdk"
+)
+
+func newRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Version: Version,
+		Use:     "mydyndns",
+		Short:   "Dynamic DNS utility",
+		Long: `mydyndns is a dynamic DNS utility. It offers a configurable agent which can be used to periodically 
+refresh from and send updates to a remote DNS management service.`,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			if err := bootstrapConfig(cmd); err != nil {
+				return err
+			}
+			return bootstrapAPIClient(cmd)
+		},
+	}
+
+	// Outputs
+	cmd.SetOut(cmd.OutOrStdout())
+	cmd.SetErr(cmd.OutOrStderr())
+
+	// Global flags
+	cmd.PersistentFlags().String("config-file", "",
+		"Explicitly set a config file (disables config file discovery)")
+	cmd.PersistentFlags().String("config-path", defaultConfigPath,
+		"Search path for config file discovery when --config-file is not set to an absolute path.")
+
+	cmd.PersistentFlags().StringP("api-url", "u", "",
+		"Base URL for the mydyndns control API")
+	cmd.PersistentFlags().DurationP("interval", "i", defaultPollInterval,
+		"How often to poll for a new IP")
+	cmd.PersistentFlags().StringP("api-key", "k", "",
+		"Client API secret")
+	cmd.PersistentFlags().CountP("log-verbosity", "v",
+		"Increase logging verbosity level (default ERROR)")
+	cmd.PersistentFlags().Bool("log-json", false,
+		"Whether to output JSON logs")
+
+	return cmd
+}
+
+func bootstrapConfig(cmd *cobra.Command) error {
+	// Determine the effective config file (if any) from the config-file and config-path flags
+	configSearchPath, err := cmd.Flags().GetString("config-path")
+	bugIfError(err, "could not determine the config path")
+
+	var (
+		requireConfigFile = false
+		configFilename    string
+	)
+	if flag := cmd.Flag("config-file"); flag != nil && flag.Changed {
+		requireConfigFile = true
+		configFilename = flag.Value.String()
+	} else if envConfigFile, isSet := os.LookupEnv(fmt.Sprintf("%s_CONFIG_FILE", envPrefix)); isSet {
+		requireConfigFile = true
+		configFilename = envConfigFile
+	}
+
+	if requireConfigFile {
+		if !filepath.IsAbs(configFilename) {
+			configFilename = filepath.Join(configSearchPath, configFilename)
+		}
+		viper.SetConfigFile(configFilename)
+	} else {
+		viper.SetConfigName(defaultConfigFilename)
+		viper.AddConfigPath(configSearchPath)
+	}
+
+	if err = func() (e error) {
+		// Because not all underlying errors are graceful (the TOML parser seems fragile),
+		// attempt to recover from a parsing-related panic as gracefully as possible
+		defer func() {
+			if r := recover(); r != nil {
+				cmd.SilenceUsage = true
+				e = fmt.Errorf(
+					"unrecoverable error reading (possibly corrupt) config file %q due to underlying error: %q",
+					viper.ConfigFileUsed(), r,
+				)
+			}
+		}()
+
+		if err := viper.ReadInConfig(); err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); !ok || requireConfigFile {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return err
+	}
+
+	// Matching environment variables must have prefix MYDYNDNS_
+	viper.SetEnvPrefix(envPrefix)
+	viper.AutomaticEnv()
+
+	cmd.Flags().VisitAll(func(f *pflag.Flag) {
+		// Environment variables can't have dashes in them, so bind them to their equivalent
+		// keys with underscores, e.g. --foo-bar to MYDYNDNS_FOO_BAR
+		if strings.Contains(f.Name, "-") {
+			envVarSuffix := strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
+			_ = viper.BindEnv(f.Name, fmt.Sprintf("%s_%s", envPrefix, envVarSuffix))
+		}
+
+		// Apply the viper config value to the flag when the flag is not set and viper has a value
+		if !f.Changed && viper.IsSet(f.Name) {
+			bugIfError(
+				cmd.Flags().Set(f.Name, viper.GetString(f.Name)),
+				"could not set flag value")
+		}
+	})
+
+	return nil
+}
+
+type APIClient interface {
+	MyIP() (net.IP, error)
+	MyIPWithContext(context.Context) (net.IP, error)
+	UpdateAlias() (net.IP, error)
+	UpdateAliasWithContext(context.Context) (net.IP, error)
+}
+
+var apiClient APIClient
+
+func bootstrapAPIClient(cmd *cobra.Command) error {
+	baseURL, err := cmd.Flags().GetString("api-url")
+	bugIfError(err, "could not determine the API URL")
+
+	apiKey, err := cmd.Flags().GetString("api-key")
+	bugIfError(err, "could not determine the API key")
+
+	apiClient = sdk.NewClient(baseURL, apiKey)
+	return nil
+}
+
+// bugIfError panics unless err is nil.
+// Use this for unrecoverable failures due to (presumably) programmer error, i.e. "flag accessed but not defined"
+func bugIfError(err error, msg string) {
+	if err != nil {
+		panic(fmt.Errorf("%s (this is a bug!) due to error: %w", msg, err))
+	}
+}
