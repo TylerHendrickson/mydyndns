@@ -1,0 +1,135 @@
+# https://taskfile.dev
+
+version: '3'
+
+output: prefixed
+
+tasks:
+  default:
+    silent: true
+    interactive: true
+    cmds:
+      - cmd: task --list
+      - cmd: printf "\nRun \"task --help\" for more information.\n"
+
+  test:
+    desc: "Runs unit tests and updates the HTML coverage report"
+    run: once
+    prefix: "test output"
+    cmds:
+      - go test -race -covermode=atomic -coverprofile=cover.out ./...
+      - task: coverage-report-html
+    sources:
+      - ./**/*.go
+      - ./Taskfile.yml
+      - ./go.mod
+      - ./go.sum
+
+  coverage-report-html:
+    desc: "Writes an HTML coverage report to ./cover.html"
+    cmds:
+      - go tool cover -html=cover.out -o cover.html
+    sources:
+      - ./cover.out
+    generates:
+      - ./cover.html
+
+  lint:
+    interactive: true
+    desc: "Runs the staticcheck utility"
+    vars:
+      FORMAT: '{{ default "stylish" .FORMAT }}'
+    cmds:
+      - "staticcheck -f {{ .FORMAT }} ./..."
+    ignore_error: true
+    sources:
+      - ./**/*.go
+
+  build:
+    desc: 'Alias for "build-{{ OS }}" (varies according to host OS)'
+    cmds:
+      - task: build-{{ default OS .TARGET }}
+
+  build-target:
+    run: when_changed
+    label: "build-{{ .BUILD_GOOS }}"
+    prefix: "output build-{{ .BUILD_GOOS }}"
+    vars:
+      BUILD_ARTIFACT: ./bin/{{ .BUILD_GOOS }}/
+    env:
+      GOOS: "{{ default OS .BUILD_GOOS }}"
+      GOPATH:
+        sh: go env GOPATH
+    cmds:
+      - go build -gcflags="-trimpath=$GOPATH" -asmflags="-trimpath=$GOPATH" -trimpath -v -o {{ .BUILD_ARTIFACT }} ./cmd/...
+      - cmd: echo {{ .BUILD_ARTIFACT }}
+        silent: true
+    sources:
+      - ./**/*.go
+      - ./Taskfile.yml
+      - ./go.mod
+      - ./go.sum
+    generates:
+      - "./bin/{{ .BUILD_GOOS }}/mydyndns{{ .BUILD_EXT }}"
+
+  build-linux:
+    desc: "Compiles a mydyndns executable for Linux"
+    cmds:
+      - task: build-target
+        vars:
+          BUILD_GOOS: "linux"
+    generates:
+      - "./bin/linux/mydyndns"
+
+  build-darwin:
+    desc: "Compiles a mydyndns executable for Mac OS"
+    cmds:
+      - task: build-target
+        vars:
+          BUILD_GOOS: "darwin"
+    generates:
+      - "./bin/darwin/mydyndns"
+
+  build-windows:
+    desc: "Compiles a mydyndns executable for Windows"
+    cmds:
+      - task: build-target
+        vars:
+          BUILD_GOOS: "windows"
+          BUILD_EXT: ".exe"
+    generates:
+      - "./bin/windows/mydyndns.exe"
+
+  build-all:
+    desc: "Compiles mydyndns executables for Darwin (Mac OS), Linux, and Windows"
+    deps:
+      - build-darwin
+      - build-linux
+      - build-windows
+
+  clean:
+    desc: "Removes OS-specific build directories and their contents in ./bin/"
+    silent: true
+    cmds:
+      - find ./bin -mindepth 1 -type d -exec rm -rf {} + -print
+
+  run:
+    desc: 'Compiles a mydyndns executable for the host OS, then executes it'
+    summary: |
+      Compiles a mydyndns executable for the host OS, then executes it.
+      The binary path is OS-dependent ("./bin/{{ OS }}/mydyndns" for this host).
+      
+      Usage:
+        # The following two commands are roughly equivalent:
+        $ task run -- help
+        $ task build && ./bin/{{ OS }}/mydyndns help
+      
+        # Reminder: The "task -s / --silent" flag can be used to silence notifications from Taskfile:
+        $ task -s run -- help
+    interactive: true
+    silent: true
+    ignore_error: true
+    deps:
+      - task: build-{{ OS }}
+    cmds:
+      - cmd: ./bin/{{ OS }}/mydyndns {{ .CLI_ARGS }}
