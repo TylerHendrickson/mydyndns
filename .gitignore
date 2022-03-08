@@ -18,6 +18,9 @@
 !LICENSE
 
 !Taskfile.yml
+!.github/workflows/release_build.yml
+!.goreleaser.yaml
+!goreleaser.Dockerfile
 
 # ...even if they are in subdirectories
 !*/
