@@ -39,6 +39,7 @@ dockers:
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
       - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "--label=org.opencontainers.image.description={{.Changelog}}"
       - "--platform=linux/amd64"
 checksum:
   name_template: 'checksums.txt'
