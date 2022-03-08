@@ -8,8 +8,8 @@ builds:
       - linux
       - windows
       - darwin
-    main: ./cmd/gitter
-    binary: gitter
+    main: ./cmd/mydyndns
+    binary: mydyndns
     ldflags:
       - -s -w -X {{.ModulePath}}/cmd/mydyndns/cli.Version={{.Version}}
         -X main.commit={{.Commit}}
@@ -23,7 +23,7 @@ archives:
       386: i386
       amd64: x86_64
     builds:
-      - go-gitter
+      - mydyndns
 dockers:
   - image_templates:
       - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Tag }}"
