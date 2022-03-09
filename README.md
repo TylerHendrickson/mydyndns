@@ -233,10 +233,10 @@ services:
     restart: unless-stopped
 ```
 
-In this example, configuration is sourced from a volume mounted at `/config` in the container.
-However, all usual means of configuration are still supported; parameters may be provided via 
-the `environment` section, as well as by providing additional flags in the `command` directive.
-Note that all environment variables must be prefixed with `MYDYNDNS_`.
+In this example, configuration is sourced from file within a volume mounted at `/config` in the container, 
+e.g. `/config/mydyndns.toml`. However, all usual means of configuration are still supported; 
+parameters may be provided via the `environment` section, as well as by passing additional flags 
+in the `command` directive. Note that all environment variables must be prefixed with `MYDYNDNS_`.
 
 
 ## Developing
