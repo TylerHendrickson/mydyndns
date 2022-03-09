@@ -44,6 +44,21 @@ $ mydyndns config write /var/mydyndns/conf.yml --defaults
 $ mydyndns config write conf.yml --directory /var/mydyndns --defaults
 ```
 
+##### Configuration sources
+
+In addition to configuration files, environment variables may be provided in place of file-based 
+configuration directives, as well as command-line flags. Environment variables must be prefixed with `MYDYNDNS_`, 
+be upper-cased, and use underscores instead of dashes. 
+
+As an example, the following directives are equivalent means of providing a base URL for a remote MyDynDNS
+service API:
+1. As a command-line flag: `--api-url=https://example.com`
+2. As an environment variable: `MYDYNDNS_API_URL=https://example.com`
+3. As a line in a (`toml`) configuration file: `api-url = https://example.com`
+
+Note that the above list is in order of precedence, e.g. a configuration directive provided as a command-line flag
+will take precedence over a conflicting environment variable, etc.
+
 
 ##### Notes:
 
