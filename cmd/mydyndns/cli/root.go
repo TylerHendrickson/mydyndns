@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -55,10 +54,22 @@ refresh from and send updates to a remote DNS management service.`,
 }
 
 func bootstrapConfig(cmd *cobra.Command) error {
-	requireConfigFile, err := bootstrapConfigFile(cmd, viper.GetViper())
-	bugIfError(err, "could not bootstrap config file")
+	for _, k := range []string{"config-file", "config-path"} {
+		bugIfError(viper.BindPFlag(k, cmd.Flag(k)), "could not bootstrap config")
+		bugIfError(viper.BindEnv(k, flagNameToEnvVar(envPrefix, k)), "could not bootstrap config")
+	}
+	if viper.IsSet("config-file") {
+		configFilename := viper.GetString("config-file")
+		if !filepath.IsAbs(configFilename) {
+			configFilename = filepath.Join(viper.GetString("config-path"), configFilename)
+		}
+		viper.SetConfigFile(configFilename)
+	} else {
+		viper.SetConfigName(defaultConfigFilename)
+		viper.AddConfigPath(viper.GetString("search-path"))
+	}
 
-	if err = func() (e error) {
+	if err := func() (e error) {
 		// Because not all underlying errors are graceful (the TOML parser seems fragile),
 		// attempt to recover from a parsing-related panic as gracefully as possible
 		defer func() {
@@ -72,7 +83,7 @@ func bootstrapConfig(cmd *cobra.Command) error {
 		}()
 
 		if err := viper.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); !ok || requireConfigFile {
+			if _, ok := err.(viper.ConfigFileNotFoundError); !ok || viper.IsSet("config-file") {
 				return err
 			}
 		}
@@ -99,53 +110,6 @@ func bootstrapConfig(cmd *cobra.Command) error {
 	})
 
 	return nil
-}
-
-// bootstrapConfigFile inspects the *cobra.Command flags and environment variables
-// and instructs the *viper.Viper to read configuration from a file based on these settings.
-// The first return value is a boolean which indicates whether a config file is explicitly
-// set (either via flag or environment variables).
-// The second return value is an error that, if non-nil, indicates that the flag could not be determined
-// (due to a typo/bug).
-func bootstrapConfigFile(cmd *cobra.Command, v *viper.Viper) (bool, error) {
-	const (
-		configPathFlagName = "config-path"
-		configFileFlagName = "config-file"
-	)
-
-	configSearchPath, err := cmd.Flags().GetString(configPathFlagName)
-	if err != nil {
-		return false, err
-	}
-	if !cmd.Flag(configPathFlagName).Changed {
-		if envConfigSearchPath, isSet := os.LookupEnv(fmt.Sprintf("%s_CONFIG_PATH", envPrefix)); isSet {
-			configSearchPath = envConfigSearchPath
-		}
-	}
-
-	var explicitConfigFile = false
-	configFilename, err := cmd.Flags().GetString(configFileFlagName)
-	if err != nil {
-		return false, err
-	}
-	if cmd.Flag(configFileFlagName).Changed {
-		explicitConfigFile = true
-	} else if envConfigFile, isSet := os.LookupEnv(fmt.Sprintf("%s_CONFIG_FILE", envPrefix)); isSet {
-		explicitConfigFile = true
-		configFilename = envConfigFile
-	}
-
-	if explicitConfigFile {
-		if !filepath.IsAbs(configFilename) {
-			configFilename = filepath.Join(configSearchPath, configFilename)
-		}
-		v.SetConfigFile(configFilename)
-	} else {
-		v.SetConfigName(defaultConfigFilename)
-		v.AddConfigPath(configSearchPath)
-	}
-
-	return explicitConfigFile, nil
 }
 
 type APIClient interface {
