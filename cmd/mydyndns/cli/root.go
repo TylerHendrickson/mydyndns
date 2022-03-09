@@ -54,10 +54,17 @@ refresh from and send updates to a remote DNS management service.`,
 }
 
 func bootstrapConfig(cmd *cobra.Command) error {
-	for _, k := range []string{"config-file", "config-path"} {
-		bugIfError(viper.BindPFlag(k, cmd.Flag(k)), "could not bootstrap config")
-		bugIfError(viper.BindEnv(k, flagNameToEnvVar(envPrefix, k)), "could not bootstrap config")
-	}
+	// Matching environment variables must have prefix MYDYNDNS_
+	viper.SetEnvPrefix(envPrefix)
+	viper.AutomaticEnv()
+
+	// Explicitly bind config-path and config-file flag/env var directives
+	bugIfError(viper.BindPFlag("config-path", cmd.Flag("config-path")), "could not bootstrap config")
+	bugIfError(viper.BindPFlag("config-file", cmd.Flag("config-file")), "could not bootstrap config")
+	_ = viper.BindEnv("config-path", flagNameToEnvVar(envPrefix, "config-path"))
+	_ = viper.BindEnv("config-file", flagNameToEnvVar(envPrefix, "config-file"))
+	_ = viper.BindPFlags(cmd.Flags())
+
 	if viper.IsSet("config-file") {
 		configFilename := viper.GetString("config-file")
 		if !filepath.IsAbs(configFilename) {
@@ -66,7 +73,7 @@ func bootstrapConfig(cmd *cobra.Command) error {
 		viper.SetConfigFile(configFilename)
 	} else {
 		viper.SetConfigName(defaultConfigFilename)
-		viper.AddConfigPath(viper.GetString("search-path"))
+		viper.AddConfigPath(viper.GetString("config-path"))
 	}
 
 	if err := func() (e error) {
@@ -92,15 +99,10 @@ func bootstrapConfig(cmd *cobra.Command) error {
 		return err
 	}
 
-	// Matching environment variables must have prefix MYDYNDNS_
-	viper.SetEnvPrefix(envPrefix)
-	viper.AutomaticEnv()
-
+	// TODO: We do this because command handlers generally retrieve all config directives from `cmd.Flags()`.
+	//  Effectively, this is just syncing viper directives with (back to) their respective flag values.
+	// 	If things were refactored to use Viper for fetching canonical/resolved values, we could get rid of this.
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		// Environment variables can't have dashes in them, so bind them to their equivalent
-		// keys with underscores, e.g. --foo-bar to MYDYNDNS_FOO_BAR
-		_ = viper.BindEnv(f.Name, flagNameToEnvVar(envPrefix, f.Name))
-
 		// Apply the viper config value to the flag when the flag is not set and viper has a value
 		if !f.Changed && viper.IsSet(f.Name) {
 			bugIfError(
