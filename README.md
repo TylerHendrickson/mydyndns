@@ -32,9 +32,9 @@ The CLI contains built-in support for generating and validating config files:
 ```cli
 # Generate mydyndns.toml with validated custom options:
 $ mydyndns config write toml \
---validate \
---api-url=https://example.com --api-key=secret \
---interval=1h --log-verbosity=1
+    --validate \
+    --api-url=https://example.com --api-key=secret \
+    --interval=1h --log-verbosity=1
 
 # Generate mydyndns.json populated default values:
 $ mydyndns config write json --defaults
@@ -97,7 +97,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/TylerHendrickson/personal-aws-monorepo/apps/mydyndns/pkg/sdk"
+	"github.com/TylerHendrickson/mydyndns/pkg/sdk"
 	"net"
 	"os"
 )
@@ -148,8 +148,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/TylerHendrickson/personal-aws-monorepo/apps/mydyndns/pkg/agent"
-	"github.com/TylerHendrickson/personal-aws-monorepo/apps/mydyndns/pkg/sdk"
+	"github.com/TylerHendrickson/mydyndns/pkg/agent"
+	"github.com/TylerHendrickson/mydyndns/pkg/sdk"
 	"github.com/go-kit/log"
 )
 
@@ -172,23 +172,71 @@ func main() {
 ```
 
 
-## Installing
+## Using
 
 
 ### go install
 
-The easiest way to install this program is to clone the repository, navigate to `apps/mydyndns`, 
-and run `go install`. This will compile the proper binary for your operating system and place it 
-in your Go binaries path (e.g. `$GOBIN`, `$GOPATH/bin`, etc.). Precompiled binaries are available in [bin/](./bin).
+The easiest way to install this program is to clone the repository, navigate to `mydyndns`, 
+and run `go install ./cmd/mydyndns` from within the cloned repository. 
+This will compile the proper binary for your operating system and place it in your Go binaries path 
+(e.g. `$GOBIN`, `$GOPATH/bin`, etc.).
 
-Alternatively, run `go install github.com/TylerHendrickson/personal-aws-monorepo/apps/mydyndns` to install without
+Alternatively, run `go install github.com/TylerHendrickson/mydyndns/cmd/mydyndns@latest` to install without
 cloning.
 
 
 ### go get
 
-Use `go get github.com/TylerHendrickson/personal-aws-monorepo/apps/mydyndns` to make this available for use in
-your own Go application.
+Use `go get -u github.com/TylerHendrickson/mydyndns/pkg/sdk` 
+and/or `go get -u github.com/TylerHendrickson/mydyndns/pkg/agent`
+to make this available for use in your own Go application.
+
+
+### Precompiled Binary
+
+See the [releases page](https://github.com/TylerHendrickson/mydyndns/releases) to download the appropriate archive 
+for your platform. You can find the latest release [here](https://github.com/TylerHendrickson/mydyndns/releases/latest).
+
+Example:
+
+```cli
+$ wget https://github.com/TylerHendrickson/mydyndns/releases/download/0.1.8/mydyndns_0.1.8_Linux_arm64.tar.gz
+$ tar xvfz mydyndns_*.tar.gz mydyndns
+$ mv ./mydyndns /usr/bin/mydyndns
+```
+
+### Docker
+
+The CLI application is available as a Docker image, hosted by GitHub's container registry. 
+View released images [here](https://github.com/TylerHendrickson/mydyndns/pkgs/container/mydyndns).
+
+
+#### Using docker-compose
+
+Using `docker-compose` to run the agent is relatively straightforward:
+
+```yaml
+version: "3.6"
+services:
+  mydyndns:
+    image: ghcr.io/tylerhendrickson/mydyndns:latest
+    container_name: mydyndns-agent
+    command: agent start
+    environment:
+      - TZ
+      - PUID
+      - PGID
+      - MYDYNDNS_CONFIG_PATH=/config
+    volumes:
+      - ./mydyndns:/config:ro
+    restart: unless-stopped
+```
+
+In this example, configuration is sourced from a volume mounted at `/config` in the container.
+However, all usual means of configuration are still supported; parameters may be provided via 
+the `environment` section, as well as by providing additional flags in the `command` directive.
+Note that all environment variables must be prefixed with `MYDYNDNS_`.
 
 
 ## Developing
