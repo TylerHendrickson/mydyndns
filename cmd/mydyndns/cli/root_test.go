@@ -3,11 +3,9 @@ package cli
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -79,104 +77,6 @@ func TestBootstrapConfigParsePanicFailsGracefully(t *testing.T) {
 	assert.EqualError(t, err, fmt.Sprintf(
 		"unrecoverable error reading (possibly corrupt) config file %q due to underlying error: %q",
 		tempFile.Name(), panicMsg))
-}
-
-func TestBootstrapConfigFile(t *testing.T) {
-	type expectedResult struct {
-		isSet bool
-		err   error
-	}
-
-	restoreEnv := func(t *testing.T, k, v string) {
-		t.Helper()
-		restoreValue, doRestore := os.LookupEnv(k)
-		if doRestore {
-			t.Cleanup(func() {
-				if err := os.Setenv(k, restoreValue); err != nil {
-					t.Fatal(err)
-				}
-			})
-		} else {
-			t.Cleanup(func() {
-				if err := os.Unsetenv(k); err != nil {
-					t.Fatal(err)
-				}
-			})
-		}
-		require.NoError(t, os.Setenv(k, v))
-	}
-
-	for _, tt := range []struct {
-		name     string
-		setup    func(t *testing.T, cmd *cobra.Command)
-		expected expectedResult
-	}{
-		{
-			"undefined config-file flag",
-			func(t *testing.T, cmd *cobra.Command) {
-				cmd.Flags().String("config-path", defaultConfigPath, "config search path")
-			},
-			expectedResult{false, fmt.Errorf("flag accessed but not defined: config-file")},
-		},
-		{
-			"undefined config-path flag",
-			func(t *testing.T, cmd *cobra.Command) {
-				cmd.Flags().String("config-file", "my-config.toml", "config file")
-			},
-			expectedResult{false, fmt.Errorf("flag accessed but not defined: config-path")},
-		},
-		{
-			"flag provides implicit config file",
-			func(t *testing.T, cmd *cobra.Command) {
-				cmd.Flags().String("config-path", defaultConfigPath, "config search path")
-				cmd.Flags().String("config-file", "my-config.toml", "config file")
-			},
-			expectedResult{false, nil},
-		},
-		{
-			"flag provides explicit config file",
-			func(t *testing.T, cmd *cobra.Command) {
-				cmd.Flags().String("config-path", defaultConfigPath, "config search path")
-				cmd.Flags().String("config-file", "my-config.toml", "config file")
-				if err := cmd.Flags().Parse([]string{"--config-file=my-config-file.toml"}); err != nil {
-					t.Fatal(err)
-				}
-			},
-			expectedResult{true, nil},
-		},
-		{
-			"env provides explicit config search path",
-			func(t *testing.T, cmd *cobra.Command) {
-				cmd.Flags().String("config-path", defaultConfigPath, "config search path")
-				cmd.Flags().String("config-file", "my-config.toml", "config file")
-				restoreEnv(t, "MYDYNDNS_CONFIG_PATH", "/config")
-			},
-			expectedResult{false, nil},
-		},
-		{
-			"env provides explicit config file",
-			func(t *testing.T, cmd *cobra.Command) {
-				cmd.Flags().String("config-path", defaultConfigPath, "config search path")
-				cmd.Flags().String("config-file", "my-config.toml", "config file")
-				restoreEnv(t, "MYDYNDNS_CONFIG_FILE", "my-config-file.toml")
-			},
-			expectedResult{true, nil},
-		},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := &cobra.Command{}
-			tt.setup(t, cmd)
-
-			isSet, err := bootstrapConfigFile(cmd, viper.New())
-
-			assert.Equal(t, tt.expected.isSet, isSet)
-			if expectedErr := tt.expected.err; expectedErr != nil {
-				assert.EqualError(t, err, expectedErr.Error())
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
 }
 
 func TestFlagNameToEnvVar(t *testing.T) {
