@@ -18,6 +18,7 @@
 !LICENSE
 
 !Taskfile.yml
+!.github/dependabot.yml
 !.github/workflows/release_build.yml
 !.goreleaser.yaml
 !goreleaser.Dockerfile
