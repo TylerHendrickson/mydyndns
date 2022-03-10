@@ -5,9 +5,18 @@ builds:
   - env:
       - CGO_ENABLED=0
     goos:
+      - darwin
       - linux
-#      - windows
-#      - darwin
+      - windows
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - "5"
+      - "6"
+      - "7"
     main: ./cmd/mydyndns
     binary: mydyndns
     ldflags:
@@ -16,14 +25,10 @@ builds:
         -X main.date={{.Date}}
         -X main.builtBy=goreleaser
 archives:
-  - replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
-    builds:
-      - mydyndns
+  - format_overrides:
+      - goos: windows
+        format: zip
+
 dockers:
   - image_templates:
       - "{{ .Env.REGISTRY }}/{{ .Env.IMAGE_NAME }}:{{ .Tag }}"
