@@ -12,7 +12,7 @@ import (
 )
 
 func TestBootstrapConfigConfigFileResolution(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := TempDir(t)
 	tempFile, err := ioutil.TempFile(tempDir, "*.toml")
 	absFile := tempFile.Name()
 	_, relFile := filepath.Split(tempFile.Name())
@@ -53,7 +53,7 @@ func TestBootstrapConfigConfigFileResolution(t *testing.T) {
 }
 
 func TestBootstrapConfigParsePanicFailsGracefully(t *testing.T) {
-	tempDir := t.TempDir()
+	tempDir := TempDir(t)
 	tempFile, err := ioutil.TempFile(tempDir, "*.toml")
 	require.NoError(t, err)
 	_, err = tempFile.Write([]byte("a=1\nb=\nc=3"))

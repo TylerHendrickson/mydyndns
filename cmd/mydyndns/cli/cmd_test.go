@@ -75,3 +75,14 @@ func patchBootstrappedAPIClient(mocked APIClient, rootCmd *cobra.Command) {
 		return originalPersistentPreRunE(cmd, args)
 	}
 }
+
+// TempDir is a helper function that wraps *testing.T.TempDir.
+// It ensures that an attempt is made to delete files nested under the temp directory
+// before the directory itself is deleted.
+// This is necessary because Windows encounters an error when cleaning up a non-empty temp directory.
+func TempDir(t *testing.T) string {
+	t.Helper()
+	tempDir := t.TempDir()
+	t.Cleanup(func() { os.RemoveAll(tempDir) })
+	return tempDir
+}

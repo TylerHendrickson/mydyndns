@@ -30,7 +30,7 @@ func TestConfigWriteCmd(t *testing.T) {
 	for _, tt := range []TT{
 		{
 			"defaults",
-			t.TempDir(),
+			TempDir(t),
 			[]string{"toml"},
 			[]string{"--defaults"},
 			false,
@@ -46,7 +46,7 @@ func TestConfigWriteCmd(t *testing.T) {
 		},
 		{
 			"effective non-default config",
-			t.TempDir(),
+			TempDir(t),
 			[]string{"toml"},
 			[]string{
 				"--api-key=asdfjkl",
@@ -69,7 +69,7 @@ func TestConfigWriteCmd(t *testing.T) {
 		},
 		{
 			"defaults with nonstandard filename",
-			t.TempDir(),
+			TempDir(t),
 			[]string{"foobar.yaml"},
 			[]string{"--defaults"},
 			false,
@@ -85,7 +85,7 @@ func TestConfigWriteCmd(t *testing.T) {
 		},
 		{
 			"multiple files with defaults",
-			t.TempDir(),
+			TempDir(t),
 			[]string{"toml", "foobar.yaml", "json", "yml"},
 			[]string{"--defaults"},
 			false,
@@ -101,7 +101,7 @@ func TestConfigWriteCmd(t *testing.T) {
 		},
 		{
 			"safe write fails",
-			t.TempDir(),
+			TempDir(t),
 			[]string{"foobar.yaml", "foobar.yaml"},
 			[]string{"--defaults", "--safe"},
 			false,
@@ -119,7 +119,7 @@ func TestConfigWriteCmd(t *testing.T) {
 		},
 		{
 			"fail when validation is requested",
-			t.TempDir(),
+			TempDir(t),
 			[]string{"toml"},
 			[]string{
 				"--api-url=https://example.com",
@@ -137,7 +137,7 @@ func TestConfigWriteCmd(t *testing.T) {
 		},
 		{
 			"fail when config type is unsupported",
-			t.TempDir(),
+			TempDir(t),
 			[]string{"notarealconfigtype"},
 			[]string{"--defaults"},
 			false,
@@ -149,7 +149,7 @@ func TestConfigWriteCmd(t *testing.T) {
 		},
 		{
 			"requires at least 1 argument",
-			t.TempDir(),
+			TempDir(t),
 			nil,
 			[]string{"--defaults"},
 			false,
@@ -310,7 +310,7 @@ func TestConfigShowCmd(t *testing.T) {
 		}
 	}
 
-	configDir := t.TempDir()
+	configDir := TempDir(t)
 	configFile, err := ioutil.TempFile(configDir, "*.toml")
 	require.NoError(t, err)
 
