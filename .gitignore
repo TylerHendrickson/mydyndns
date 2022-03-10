@@ -20,6 +20,7 @@
 !Taskfile.yml
 !.github/dependabot.yml
 !.github/workflows/release_build.yml
+!.github/workflows/test.yml
 !.goreleaser.yaml
 !goreleaser.Dockerfile
 
