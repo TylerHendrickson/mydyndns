@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -13,9 +12,7 @@ import (
 
 func TestBootstrapConfigConfigFileResolution(t *testing.T) {
 	tempDir := t.TempDir()
-	tempFile, err := ioutil.TempFile(tempDir, "*.toml")
-	require.NoError(t, err)
-	t.Cleanup(func() { tempFile.Close() })
+	tempFile := TempFile(t, tempDir, "*.toml")
 	absFile := tempFile.Name()
 	_, relFile := filepath.Split(tempFile.Name())
 	require.True(t, filepath.IsAbs(tempFile.Name()))
@@ -55,10 +52,8 @@ func TestBootstrapConfigConfigFileResolution(t *testing.T) {
 
 func TestBootstrapConfigParsePanicFailsGracefully(t *testing.T) {
 	tempDir := t.TempDir()
-	tempFile, err := ioutil.TempFile(tempDir, "*.toml")
-	require.NoError(t, err)
-	t.Cleanup(func() { tempFile.Close() })
-	_, err = tempFile.Write([]byte("a=1\nb=\nc=3"))
+	tempFile := TempFile(t, tempDir, "*.toml")
+	_, err := tempFile.Write([]byte("a=1\nb=\nc=3"))
 	require.NoError(t, err)
 
 	v := viper.New()

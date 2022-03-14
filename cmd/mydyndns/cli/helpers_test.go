@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -74,4 +76,14 @@ func patchBootstrappedAPIClient(mocked APIClient, rootCmd *cobra.Command) {
 		defer func() { apiClient = mocked }()
 		return originalPersistentPreRunE(cmd, args)
 	}
+}
+
+// TempFile is a wrapper for ioutil.Tempfile() that registers a cleanup function to close the file when the test ends.
+// If an error is encountered when creating the file, the test will fail immediately.
+func TempFile(t *testing.T, dir, pattern string) *os.File {
+	t.Helper()
+	f, err := ioutil.TempFile(dir, pattern)
+	require.NoError(t, err)
+	t.Cleanup(func() { f.Close() })
+	return f
 }
