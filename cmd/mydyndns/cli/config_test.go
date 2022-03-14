@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -311,9 +310,7 @@ func TestConfigShowCmd(t *testing.T) {
 	}
 
 	configDir := t.TempDir()
-	configFile, err := ioutil.TempFile(configDir, "*.toml")
-	t.Cleanup(func() { configFile.Close() })
-	require.NoError(t, err)
+	configFile := TempFile(t, configDir, "*.toml")
 
 	for _, tt := range []struct {
 		name     string
