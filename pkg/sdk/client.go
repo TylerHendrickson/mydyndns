@@ -51,7 +51,7 @@ func (c *Client) UpdateAlias() (net.IP, error) {
 // and requests that the DNS alias maintained by the mydyndns web service be updated to that IP address.
 // It returns the apparent net.IP address or an error that caused the operation to fail.
 func (c *Client) UpdateAliasWithContext(ctx context.Context) (net.IP, error) {
-	return c.fetchIP(ctx, "POST", "dns-alias")
+	return c.fetchIP(ctx, "POST", "dns-value")
 }
 
 func (c *Client) fetchIP(ctx context.Context, method, path string) (ip net.IP, err error) {

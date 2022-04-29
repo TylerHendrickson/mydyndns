@@ -44,7 +44,7 @@ func TestClient(t *testing.T) {
 			"UpdateAlias() 200 response",
 			http.StatusOK,
 			[]byte("9.8.7.6"),
-			"/dns-alias",
+			"/dns-value",
 			net.ParseIP("9.8.7.6"),
 			func(*httptest.Server) error { return nil },
 			func(c *Client) (net.IP, error) { return c.UpdateAlias() },
@@ -53,7 +53,7 @@ func TestClient(t *testing.T) {
 			"UpdateAlias() with unparseable IP",
 			http.StatusOK,
 			[]byte("badip"),
-			"/dns-alias",
+			"/dns-value",
 			nil,
 			func(*httptest.Server) error { return &net.ParseError{Type: "IP address", Text: "badip"} },
 			func(c *Client) (net.IP, error) { return c.UpdateAlias() },
@@ -62,7 +62,7 @@ func TestClient(t *testing.T) {
 			"UpdateAlias() with too long response body",
 			http.StatusOK,
 			[]byte(strings.Repeat("a", maxIPStrLen+1)),
-			"/dns-alias",
+			"/dns-value",
 			nil,
 			func(*httptest.Server) error {
 				return &net.ParseError{Type: "IP address", Text: strings.Repeat("a", maxIPStrLen)}
