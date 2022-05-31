@@ -19,7 +19,7 @@ func newRootCmd() *cobra.Command {
 		Version: Version,
 		Use:     "mydyndns",
 		Short:   "Dynamic DNS utility",
-		Long: `mydyndns is a dynamic DNS utility. It offers a configurable agent which can be used to periodically 
+		Long: `mydyndns is a dynamic DNS utility. It offers a configurable agent which can be used to periodically
 refresh from and send updates to a remote DNS management service.`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if err := bootstrapConfig(cmd); err != nil {
@@ -105,6 +105,12 @@ func bootstrapConfig(cmd *cobra.Command) error {
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
 		// Apply the viper config value to the flag when the flag is not set and viper has a value
 		if !f.Changed && viper.IsSet(f.Name) {
+			// FIXME: Viper now uses TOMLv2, which does not reliably format durations as a string,
+			// and breaks cmd.Flags().Set() with underlying error: "time: missing unit in duration".
+			// It would be nice if marshalling time.Duration flag values to TOML were reliably
+			// formatted in human-readable form (e.g. "1h23m45s"), but I think this exposes the
+			// brittleness of what we're doing here; we really should just use Viper as the canonical
+			// manager of config directives – it's too easy for things to get lost in (string) translation.
 			bugIfError(
 				cmd.Flags().Set(f.Name, viper.GetString(f.Name)),
 				"could not set flag value")
