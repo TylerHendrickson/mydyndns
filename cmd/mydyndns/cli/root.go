@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
 	"github.com/TylerHendrickson/mydyndns/pkg/sdk"
@@ -99,24 +98,6 @@ func bootstrapConfig(cmd *cobra.Command) error {
 		return err
 	}
 
-	// TODO: We do this because command handlers generally retrieve all config directives from `cmd.Flags()`.
-	//  Effectively, this is just syncing viper directives with (back to) their respective flag values.
-	// 	If things were refactored to use Viper for fetching canonical/resolved values, we could get rid of this.
-	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		// Apply the viper config value to the flag when the flag is not set and viper has a value
-		if !f.Changed && viper.IsSet(f.Name) {
-			// FIXME: Viper now uses TOMLv2, which does not reliably format durations as a string,
-			// and breaks cmd.Flags().Set() with underlying error: "time: missing unit in duration".
-			// It would be nice if marshalling time.Duration flag values to TOML were reliably
-			// formatted in human-readable form (e.g. "1h23m45s"), but I think this exposes the
-			// brittleness of what we're doing here; we really should just use Viper as the canonical
-			// manager of config directives – it's too easy for things to get lost in (string) translation.
-			bugIfError(
-				cmd.Flags().Set(f.Name, viper.GetString(f.Name)),
-				"could not set flag value")
-		}
-	})
-
 	return nil
 }
 
@@ -130,13 +111,7 @@ type APIClient interface {
 var apiClient APIClient
 
 func bootstrapAPIClient(cmd *cobra.Command) error {
-	baseURL, err := cmd.Flags().GetString("api-url")
-	bugIfError(err, "could not determine the API URL")
-
-	apiKey, err := cmd.Flags().GetString("api-key")
-	bugIfError(err, "could not determine the API key")
-
-	apiClient = sdk.NewClient(baseURL, apiKey)
+	apiClient = sdk.NewClient(viper.GetString("api-url"), viper.GetString("api-key"))
 	return nil
 }
 
