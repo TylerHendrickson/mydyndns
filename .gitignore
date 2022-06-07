@@ -19,6 +19,7 @@
 
 !Taskfile.yml
 !.github/dependabot.yml
+!.github/workflows/codeql.yml
 !.github/workflows/release_build.yml
 !.github/workflows/sonarcloud.yml
 !.github/workflows/test.yml
