@@ -33,10 +33,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Test
+      - name: Test with Reporting (Linux only)
+        if: matrix.platform == 'ubuntu-latest'
         run: |
           go test -race -covermode=atomic -coverprofile=cover.out ./...
           go test -race -covermode=atomic -coverprofile=cover.out -json ./... > report.json
+
+      - name: Test without Reporting
+        if: matrix.platform != 'ubuntu-latest'
+        run: go test -race
 
       - name: SonarCloud Scan
         if: matrix.platform == 'ubuntu-latest'
