@@ -11,8 +11,8 @@ jobs:
           - 1.17.x
         platform:
           - ubuntu-latest
-          # - macos-latest
-          # - windows-latest
+          - macos-latest
+          - windows-latest
     runs-on: ${{matrix.platform}}
     steps:
       - id: go-cache-paths
