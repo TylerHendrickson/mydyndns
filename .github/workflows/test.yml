@@ -34,10 +34,12 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Test
-        run: go test -race -covermode=atomic ./...
+        run: |
+          go test -race -covermode=atomic -coverprofile=cover.out ./...
+          go test -race -covermode=atomic -coverprofile=cover.out -json ./... > report.json
 
       - name: SonarCloud Scan
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.platform == 'ubuntu-latest'
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
