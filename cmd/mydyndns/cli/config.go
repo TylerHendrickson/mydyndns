@@ -59,22 +59,7 @@ useful for generating config file templates).`,
 			if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
 				return err
 			}
-
-			supportedExts := internal.NewStringCollection(viper.SupportedExts...)
-			for _, arg := range args {
-				ext := filepath.Ext(arg)
-				if len(ext) == 0 {
-					ext = arg
-				} else {
-					ext = ext[1:]
-				}
-
-				if !supportedExts.Contains(ext) {
-					return viper.UnsupportedConfigError(ext)
-				}
-			}
-
-			return nil
+			return validateConfigFileNames(args)
 		},
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			seenArgs := internal.NewStringCollection(args...)
@@ -104,7 +89,8 @@ useful for generating config file templates).`,
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if viper.GetBool("validate") {
-				return firstValidationError(cmd, validateAPIKey, validateBaseURL, validatePollInterval)
+				return firstValidationError(cmd,
+					validateAPIKey, validateBaseURL, validatePollInterval)
 			}
 			return nil
 		},
@@ -279,7 +265,8 @@ func newConfigValidateCmd() *cobra.Command {
 		Long: `The validate subcommand isolates the configuration checks executed when the mydyndns agent starts. Use this to
 check whether the agent would fail to start due to invalid configuration, without actually running the agent.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return firstValidationError(cmd, validateAPIKey, validateBaseURL, validatePollInterval)
+			return firstValidationError(cmd,
+				validateAPIKey, validateBaseURL, validatePollInterval)
 		},
 	}
 }
