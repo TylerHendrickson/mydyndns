@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,32 +47,6 @@ func TestBootstrapConfigConfigFileResolution(t *testing.T) {
 			assert.Equal(t, tt.expectedConfigFile, configFile)
 		})
 	}
-}
-
-func TestBootstrapConfigParsePanicFailsGracefully(t *testing.T) {
-	tempDir := t.TempDir()
-	tempFile := TempFile(t, tempDir, "*.toml")
-	_, err := tempFile.Write([]byte("a=1\nb=\nc=3"))
-	require.NoError(t, err)
-
-	v := viper.New()
-	v.SetConfigFile(tempFile.Name())
-	var panicMsg string
-	func() {
-		defer func() {
-			r := recover()
-			require.NotNil(t, r,
-				"no panic reading corrupt toml file – perhaps this test is no longer needed?")
-			panicMsg = fmt.Sprintf("%s", r)
-		}()
-		v.ReadInConfig()
-	}()
-
-	cmd, _, err := ExecuteC(newCLI(), "config", "show", fmt.Sprintf("--config-file=%s", tempFile.Name()))
-	require.Equal(t, cmd.Name(), "show")
-	assert.EqualError(t, err, fmt.Sprintf(
-		"unrecoverable error reading (possibly corrupt) config file %q due to underlying error: %q",
-		tempFile.Name(), panicMsg))
 }
 
 func TestFlagNameToEnvVar(t *testing.T) {

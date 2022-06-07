@@ -75,27 +75,10 @@ func bootstrapConfig(cmd *cobra.Command) error {
 		viper.AddConfigPath(viper.GetString("config-path"))
 	}
 
-	if err := func() (e error) {
-		// Because not all underlying errors are graceful (the TOML parser seems fragile),
-		// attempt to recover from a parsing-related panic as gracefully as possible
-		defer func() {
-			if r := recover(); r != nil {
-				cmd.SilenceUsage = true
-				e = fmt.Errorf(
-					"unrecoverable error reading (possibly corrupt) config file %q due to underlying error: %q",
-					viper.ConfigFileUsed(), r,
-				)
-			}
-		}()
-
-		if err := viper.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); !ok || viper.IsSet("config-file") {
-				return err
-			}
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok || viper.IsSet("config-file") {
+			return err
 		}
-		return nil
-	}(); err != nil {
-		return err
 	}
 
 	return nil
