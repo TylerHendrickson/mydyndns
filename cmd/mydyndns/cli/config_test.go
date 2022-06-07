@@ -197,7 +197,7 @@ func TestConfigWriteCmd(t *testing.T) {
 func TestConfigWriteCmdArgCompletion(t *testing.T) {
 	for _, tt := range []struct {
 		name                string
-		cmd                 *cobra.Command
+		cmd                 func() *cobra.Command
 		inputArgs           []string
 		toComplete          string
 		expectedCompletions []string
@@ -205,7 +205,7 @@ func TestConfigWriteCmdArgCompletion(t *testing.T) {
 	}{
 		{
 			"no repeat suggestions",
-			newConfigWriteCmd(),
+			newConfigWriteCmd,
 			[]string{"toml"},
 			"tom",
 			func() (comps []string) {
@@ -220,7 +220,7 @@ func TestConfigWriteCmdArgCompletion(t *testing.T) {
 		},
 		{
 			"completes extension",
-			newConfigWriteCmd(),
+			newConfigWriteCmd,
 			nil,
 			"foobar.tom",
 			append(viper.SupportedExts, "foobar.toml"),
@@ -230,9 +230,9 @@ func TestConfigWriteCmdArgCompletion(t *testing.T) {
 			"safe mode does not complete existing filenames",
 			func() *cobra.Command {
 				cmd := newConfigWriteCmd()
-				cmd.Flags().Set("safe", "true")
+				viper.Set("safe", true)
 				return cmd
-			}(),
+			},
 			nil,
 			"yam",
 			viper.SupportedExts,
@@ -240,9 +240,12 @@ func TestConfigWriteCmdArgCompletion(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			c, d := tt.cmd.ValidArgsFunction(tt.cmd, tt.inputArgs, tt.toComplete)
-			assert.ElementsMatch(t, tt.expectedCompletions, c)
-			assert.Equal(t, tt.directive, d, "Unexpected shell comp directive returned")
+			cmd := tt.cmd()
+			comps, directive := cmd.ValidArgsFunction(cmd, tt.inputArgs, tt.toComplete)
+
+			assert.ElementsMatch(t, tt.expectedCompletions, comps)
+			assert.Equal(t, tt.directive, directive,
+				"Unexpected shell comp directive returned")
 		})
 	}
 }
