@@ -44,8 +44,6 @@ jobs:
         run: |
           go test -race -covermode=atomic -coverprofile=cover.out ./...
           go test -race -covermode=atomic -coverprofile=cover.out -json ./... > report.json
-          pwd
-          ls -lah
 
       - name: Test without Reporting
         if: matrix.platform != 'ubuntu-latest'
