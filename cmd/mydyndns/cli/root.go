@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -33,9 +32,9 @@ refresh from and send updates to a remote DNS management service.`,
 	cmd.SetErr(cmd.OutOrStderr())
 
 	// Global flags
-	cmd.PersistentFlags().String("config-file", "",
+	cmd.PersistentFlags().String(configFileSettingKey, "",
 		"Explicitly set a config file (disables config file discovery)")
-	cmd.PersistentFlags().String("config-path", defaultConfigPath,
+	cmd.PersistentFlags().String(configPathSettingKey, defaultConfigPath,
 		"Search path for config file discovery when --config-file is not set to an absolute path.")
 
 	cmd.PersistentFlags().StringP("api-url", "u", "",
@@ -57,26 +56,26 @@ func bootstrapConfig(cmd *cobra.Command) error {
 	viper.SetEnvPrefix(envPrefix)
 	viper.AutomaticEnv()
 
-	// Explicitly bind config-path and config-file flag/env var directives
-	bugIfError(viper.BindPFlag("config-path", cmd.Flag("config-path")), "could not bootstrap config")
-	bugIfError(viper.BindPFlag("config-file", cmd.Flag("config-file")), "could not bootstrap config")
-	_ = viper.BindEnv("config-path", flagNameToEnvVar(envPrefix, "config-path"))
-	_ = viper.BindEnv("config-file", flagNameToEnvVar(envPrefix, "config-file"))
+	// Bind all CLI flags to Viper
 	_ = viper.BindPFlags(cmd.Flags())
 
-	if viper.IsSet("config-file") {
-		configFilename := viper.GetString("config-file")
+	// Explicitly bind config-path and config-file env vars
+	viper.BindEnv(configPathSettingKey, fmt.Sprintf("%s_CONFIG_PATH", envPrefix))
+	viper.BindEnv(configFileSettingKey, fmt.Sprintf("%s_CONFIG_FILE", envPrefix))
+
+	if viper.IsSet(configFileSettingKey) {
+		configFilename := viper.GetString(configFileSettingKey)
 		if !filepath.IsAbs(configFilename) {
-			configFilename = filepath.Join(viper.GetString("config-path"), configFilename)
+			configFilename = filepath.Join(viper.GetString(configPathSettingKey), configFilename)
 		}
 		viper.SetConfigFile(configFilename)
 	} else {
 		viper.SetConfigName(defaultConfigFilename)
-		viper.AddConfigPath(viper.GetString("config-path"))
+		viper.AddConfigPath(viper.GetString(configPathSettingKey))
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok || viper.IsSet("config-file") {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok || viper.IsSet(configFileSettingKey) {
 			return err
 		}
 	}
@@ -96,18 +95,4 @@ var apiClient APIClient
 func bootstrapAPIClient(cmd *cobra.Command) error {
 	apiClient = sdk.NewClient(viper.GetString("api-url"), viper.GetString("api-key"))
 	return nil
-}
-
-// flagNameToEnvVar transforms a flag name to its matching environment variable name.
-func flagNameToEnvVar(envVarPrefix, flagName string) string {
-	envVarSuffix := strings.ReplaceAll(flagName, "-", "_")
-	return fmt.Sprintf("%s_%s", strings.ToUpper(envVarPrefix), strings.ToUpper(envVarSuffix))
-}
-
-// bugIfError panics unless err is nil.
-// Use this for unrecoverable failures due to (presumably) programmer error, i.e. "flag accessed but not defined"
-func bugIfError(err error, msg string) {
-	if err != nil {
-		panic(fmt.Errorf("%s (this is a bug!) due to error: %w", msg, err))
-	}
 }

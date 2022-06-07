@@ -12,6 +12,8 @@ const (
 	defaultConfigPath     = "."
 	defaultConfigFilename = "mydyndns"
 	envPrefix             = "MYDYNDNS"
+	configPathSettingKey  = "config-path"
+	configFileSettingKey  = "config-file"
 )
 
 var (

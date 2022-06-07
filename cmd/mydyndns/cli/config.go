@@ -126,8 +126,8 @@ useful for generating config file templates).`,
 			// with only the settings that make sense for a config file.
 			configMap := viper.AllSettings()
 			// These don't make sense for a config file:
-			delete(configMap, "config-file")
-			delete(configMap, "config-path")
+			delete(configMap, configFileSettingKey)
+			delete(configMap, configPathSettingKey)
 			delete(configMap, "help")
 			// Ignore directives that are only used for this ("config write") command
 			cmd.LocalFlags().VisitAll(func(f *pflag.Flag) {
@@ -201,7 +201,7 @@ files in a variety of supported formats, see the "agent config write" subcommand
 				if k == "help" {
 					continue
 				}
-				if k == "config-file" {
+				if k == configFileSettingKey {
 					v = viper.ConfigFileUsed()
 				}
 				cmd.Printf("%s = %v\n", k, v)
