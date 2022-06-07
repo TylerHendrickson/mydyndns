@@ -377,8 +377,8 @@ func TestConfigShowCmd(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Cleanup(viper.Reset)
 			cmd, out, err := tt.execute(t, newCLI(), "config", "show")
-			t.Cleanup(func() { viper.Reset() })
 			require.Equal(t, "show", cmd.Name())
 			require.NoError(t, err)
 
