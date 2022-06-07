@@ -61,7 +61,7 @@ func TestConfigWriteCmd(t *testing.T) {
 				"api-key":       "asdfjkl",
 				"api-url":       "https://example.com",
 				"interval":      (time.Hour * 24).String(),
-				"log-json":      "true",
+				"log-json":      true,
 				"log-verbosity": "2",
 			},
 			returnsNil,
@@ -197,7 +197,7 @@ func TestConfigWriteCmd(t *testing.T) {
 func TestConfigWriteCmdArgCompletion(t *testing.T) {
 	for _, tt := range []struct {
 		name                string
-		cmd                 *cobra.Command
+		cmd                 func() *cobra.Command
 		inputArgs           []string
 		toComplete          string
 		expectedCompletions []string
@@ -205,7 +205,7 @@ func TestConfigWriteCmdArgCompletion(t *testing.T) {
 	}{
 		{
 			"no repeat suggestions",
-			newConfigWriteCmd(),
+			newConfigWriteCmd,
 			[]string{"toml"},
 			"tom",
 			func() (comps []string) {
@@ -220,7 +220,7 @@ func TestConfigWriteCmdArgCompletion(t *testing.T) {
 		},
 		{
 			"completes extension",
-			newConfigWriteCmd(),
+			newConfigWriteCmd,
 			nil,
 			"foobar.tom",
 			append(viper.SupportedExts, "foobar.toml"),
@@ -230,9 +230,9 @@ func TestConfigWriteCmdArgCompletion(t *testing.T) {
 			"safe mode does not complete existing filenames",
 			func() *cobra.Command {
 				cmd := newConfigWriteCmd()
-				cmd.Flags().Set("safe", "true")
+				viper.Set("safe", true)
 				return cmd
-			}(),
+			},
 			nil,
 			"yam",
 			viper.SupportedExts,
@@ -240,9 +240,12 @@ func TestConfigWriteCmdArgCompletion(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			c, d := tt.cmd.ValidArgsFunction(tt.cmd, tt.inputArgs, tt.toComplete)
-			assert.ElementsMatch(t, tt.expectedCompletions, c)
-			assert.Equal(t, tt.directive, d, "Unexpected shell comp directive returned")
+			cmd := tt.cmd()
+			comps, directive := cmd.ValidArgsFunction(cmd, tt.inputArgs, tt.toComplete)
+
+			assert.ElementsMatch(t, tt.expectedCompletions, comps)
+			assert.Equal(t, tt.directive, directive,
+				"Unexpected shell comp directive returned")
 		})
 	}
 }
@@ -297,15 +300,18 @@ func TestConfigTypesCheckCmd(t *testing.T) {
 }
 
 func TestConfigShowCmd(t *testing.T) {
+	// Clean slate – ensure settings don't leak from previous tests
+	viper.Reset()
+
 	makeExpectedConfig := func(apiURL, apiKey, configFile, configPath, interval, logJson, logVerbosity string) map[string]string {
 		return map[string]string{
-			"api-url":       fmt.Sprintf("%q", apiURL),
-			"api-key":       fmt.Sprintf("%q", apiKey),
-			"config-file":   fmt.Sprintf("%q", configFile),
-			"config-path":   fmt.Sprintf("%q", configPath),
-			"interval":      fmt.Sprintf("%q", interval),
-			"log-json":      fmt.Sprintf("%q", logJson),
-			"log-verbosity": fmt.Sprintf("%q", logVerbosity),
+			"api-url":       fmt.Sprintf("%v", apiURL),
+			"api-key":       fmt.Sprintf("%v", apiKey),
+			"config-file":   fmt.Sprintf("%v", configFile),
+			"config-path":   fmt.Sprintf("%v", configPath),
+			"interval":      fmt.Sprintf("%v", interval),
+			"log-json":      fmt.Sprintf("%v", logJson),
+			"log-verbosity": fmt.Sprintf("%v", logVerbosity),
 		}
 	}
 
@@ -352,7 +358,7 @@ func TestConfigShowCmd(t *testing.T) {
 				v := viper.New()
 				v.Set("api-url", "https://example.com/Test-file")
 				v.Set("api-key", "some-api-key")
-				v.Set("interval", time.Hour*12)
+				v.Set("interval", (time.Hour * 12).String())
 				v.Set("log-json", true)
 				v.Set("log-verbosity", 2)
 				require.NoError(t, v.WriteConfigAs(configFile.Name()))
@@ -371,16 +377,17 @@ func TestConfigShowCmd(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Cleanup(viper.Reset)
 			cmd, out, err := tt.execute(t, newCLI(), "config", "show")
-			t.Cleanup(func() { viper.Reset() })
 			require.Equal(t, "show", cmd.Name())
 			require.NoError(t, err)
 
 			for num, line := range strings.Split(strings.TrimSpace(out), "\n") {
-				dV := strings.SplitN(line, " = ", 2)
+				dV := strings.SplitN(line, "=", 2)
 				require.Len(t, dV, 2,
-					"Could not parse effective config in CLI output on line %d", num)
-				directive, value := dV[0], dV[1]
+					"Could not parse effective config in CLI output on line %d in %s", num, out)
+				directive := strings.TrimSuffix(dV[0], " ")
+				value := strings.TrimPrefix(dV[1], " ")
 				t.Run(directive, func(t *testing.T) {
 					assert.Equal(t, tt.expected[directive], value,
 						"config directive %q has unexpected value", directive)

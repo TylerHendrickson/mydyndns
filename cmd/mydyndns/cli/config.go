@@ -17,10 +17,10 @@ func newConfigCmd() *cobra.Command {
 		Use:   "config",
 		Short: "Utilities to assist with configuring the mydyndns agent",
 		Long: strings.TrimSpace(`
-mydyndns reads configuration directives in from the following sources (in order of precedence): CLI flags, environment variables, 
-and a configuration file. Configuration files may be specified explicitly by setting the global --config-file flag to the 
-name of a file with a supported extension. When this flag is not set, mydyndns attempts to find a suitable configuration 
-file by looking in the current working directory for a file named "mydyndns.ext", where "ext" is one of any supported 
+mydyndns reads configuration directives in from the following sources (in order of precedence): CLI flags, environment variables,
+and a configuration file. Configuration files may be specified explicitly by setting the global --config-file flag to the
+name of a file with a supported extension. When this flag is not set, mydyndns attempts to find a suitable configuration
+file by looking in the current working directory for a file named "mydyndns.ext", where "ext" is one of any supported
 config file extensions.`),
 	}
 }
@@ -31,8 +31,8 @@ func newConfigWriteCmd() *cobra.Command {
 		Short: "Writes one or more config files based on the effective configuration.",
 		Long: `The write subcommand is useful for generating config file templates in a variety of supported formats.
 Directives may be set via CLI flags, environment variables, and/or another detected config file, and the effective
-configuration file(s) will be generated accordingly. If no configuration directives have been set, the directive 
-values set in the generated file(s) will be empty/default, which may be invalid for actual use (although still 
+configuration file(s) will be generated accordingly. If no configuration directives have been set, the directive
+values set in the generated file(s) will be empty/default, which may be invalid for actual use (although still
 useful for generating config file templates).`,
 		Example: `
   - Generate a default-named config file in TOML format from effective configuration:
@@ -96,24 +96,24 @@ useful for generating config file templates).`,
 			}
 
 			directive := cobra.ShellCompDirectiveDefault
-			if safeMode, _ := cmd.Flags().GetBool("safe"); safeMode {
+			if viper.GetBool("safe") {
 				directive = cobra.ShellCompDirectiveNoFileComp
 			}
 
 			return completions, directive
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if shouldValidate, _ := cmd.Flags().GetBool("validate"); shouldValidate {
+			if viper.GetBool("validate") {
 				return firstValidationError(cmd, validateAPIKey, validateBaseURL, validatePollInterval)
 			}
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var (
-				defaultBasePath, _ = cmd.Flags().GetString("directory")
-				safeWrite, _       = cmd.Flags().GetBool("safe")
-				quiet, _           = cmd.Flags().GetBool("quiet")
-				defaultsOnly, _    = cmd.Flags().GetBool("defaults")
+				defaultBasePath = viper.GetString("directory")
+				safeWrite       = viper.GetBool("safe")
+				quiet           = viper.GetBool("quiet")
+				defaultsOnly    = viper.GetBool("defaults")
 			)
 
 			// Ensure base path is absolute
@@ -122,19 +122,29 @@ useful for generating config file templates).`,
 				return err
 			}
 
-			// Make an isolated viper and set with only the inherited flags (that are not specific to this command)
-			v := viper.New()
-			cmd.InheritedFlags().VisitAll(func(f *pflag.Flag) {
-				if f.Name == "config-file" || f.Name == "config-path" {
-					// Skip, as these don't make sense for config file directives
-					return
-				}
-				if defaultsOnly {
-					v.Set(f.Name, f.DefValue)
-				} else {
-					v.Set(f.Name, f.Value)
-				}
+			// Get all viper settings, which we will use to create an isolated viper
+			// with only the settings that make sense for a config file.
+			configMap := viper.AllSettings()
+			// These don't make sense for a config file:
+			delete(configMap, "config-file")
+			delete(configMap, "config-path")
+			delete(configMap, "help")
+			// Ignore directives that are only used for this ("config write") command
+			cmd.LocalFlags().VisitAll(func(f *pflag.Flag) {
+				delete(configMap, f.Name)
 			})
+			// Make an isolated Viper with only the remaining settings
+			v := viper.New()
+			v.MergeConfigMap(configMap)
+
+			if defaultsOnly {
+				// Replace remaining settings with the default value set on its corresponding flag
+				cmd.Flags().VisitAll(func(f *pflag.Flag) {
+					if v.IsSet(f.Name) {
+						v.Set(f.Name, f.DefValue)
+					}
+				})
+			}
 
 			writeFunc := v.WriteConfigAs
 			if safeWrite {
@@ -180,22 +190,22 @@ func newConfigShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show",
 		Short: "Displays the effective configuration for the mydyndns agent.",
-		Long: `The show subcommand is useful for checking the effective agent configuration, especially when multiple 
+		Long: `The show subcommand is useful for checking the effective agent configuration, especially when multiple
 configuration sources (environment variables, config file, and/or CLI flags) are in-use.
 
 Note that the output from this command should not be used to create config files, as its output is meant to be human-
 readable and is not intended to be compatible with any supported configuration file format. To generate usable config
 files in a variety of supported formats, see the "agent config write" subcommand.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			cmd.InheritedFlags().VisitAll(func(f *pflag.Flag) {
-				val := f.Value.String()
-				if f.Name == "config-file" {
-					// Show actual config file used, regardless of flag value
-					// (should always be effectively the same if a flag was given)
-					val = viper.ConfigFileUsed()
+			for k, v := range viper.AllSettings() {
+				if k == "help" {
+					continue
 				}
-				cmd.Printf("%s = %q\n", f.Name, val)
-			})
+				if k == "config-file" {
+					v = viper.ConfigFileUsed()
+				}
+				cmd.Printf("%s = %v\n", k, v)
+			}
 		},
 	}
 }
@@ -213,7 +223,7 @@ func newConfigTypesListCmd() *cobra.Command {
 		Short: "Print a list of supported configuration file types (as extensions)",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			if bare, _ := cmd.Flags().GetBool("bare"); bare {
+			if viper.GetBool("bare") {
 				for _, ext := range viper.SupportedExts {
 					cmd.Println(ext)
 				}
@@ -234,10 +244,10 @@ func newConfigTypesCheckCmd() *cobra.Command {
 		Short: "Check if the supplied configuration file type is supported",
 		Long: strings.TrimSpace(fmt.Sprintf(`
 The check subcommand helps determine whether the bare config type (e.g. "toml") or config filename
-(based on the extension, e.g. "config.toml") is a supported format. If the type type is not recognized, 
+(based on the extension, e.g. "config.toml") is a supported format. If the type type is not recognized,
 the command will exit with an error.
 
-Essentially, this command checks whether the single argument matches or ends with a match 
+Essentially, this command checks whether the single argument matches or ends with a match
 preceded by a dot (as a file extension) any of the following values: %s`, strings.Join(viper.SupportedExts, ", "))),
 		Example: `  mydyndns run config types check toml ⮕ (SUCCESS)
   mydyndns run config types check config.toml ⮕ (SUCCESS)

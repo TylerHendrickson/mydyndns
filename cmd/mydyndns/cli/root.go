@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
 	"github.com/TylerHendrickson/mydyndns/pkg/sdk"
@@ -19,7 +18,7 @@ func newRootCmd() *cobra.Command {
 		Version: Version,
 		Use:     "mydyndns",
 		Short:   "Dynamic DNS utility",
-		Long: `mydyndns is a dynamic DNS utility. It offers a configurable agent which can be used to periodically 
+		Long: `mydyndns is a dynamic DNS utility. It offers a configurable agent which can be used to periodically
 refresh from and send updates to a remote DNS management service.`,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if err := bootstrapConfig(cmd); err != nil {
@@ -76,40 +75,11 @@ func bootstrapConfig(cmd *cobra.Command) error {
 		viper.AddConfigPath(viper.GetString("config-path"))
 	}
 
-	if err := func() (e error) {
-		// Because not all underlying errors are graceful (the TOML parser seems fragile),
-		// attempt to recover from a parsing-related panic as gracefully as possible
-		defer func() {
-			if r := recover(); r != nil {
-				cmd.SilenceUsage = true
-				e = fmt.Errorf(
-					"unrecoverable error reading (possibly corrupt) config file %q due to underlying error: %q",
-					viper.ConfigFileUsed(), r,
-				)
-			}
-		}()
-
-		if err := viper.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); !ok || viper.IsSet("config-file") {
-				return err
-			}
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok || viper.IsSet("config-file") {
+			return err
 		}
-		return nil
-	}(); err != nil {
-		return err
 	}
-
-	// TODO: We do this because command handlers generally retrieve all config directives from `cmd.Flags()`.
-	//  Effectively, this is just syncing viper directives with (back to) their respective flag values.
-	// 	If things were refactored to use Viper for fetching canonical/resolved values, we could get rid of this.
-	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		// Apply the viper config value to the flag when the flag is not set and viper has a value
-		if !f.Changed && viper.IsSet(f.Name) {
-			bugIfError(
-				cmd.Flags().Set(f.Name, viper.GetString(f.Name)),
-				"could not set flag value")
-		}
-	})
 
 	return nil
 }
@@ -124,13 +94,7 @@ type APIClient interface {
 var apiClient APIClient
 
 func bootstrapAPIClient(cmd *cobra.Command) error {
-	baseURL, err := cmd.Flags().GetString("api-url")
-	bugIfError(err, "could not determine the API URL")
-
-	apiKey, err := cmd.Flags().GetString("api-key")
-	bugIfError(err, "could not determine the API key")
-
-	apiClient = sdk.NewClient(baseURL, apiKey)
+	apiClient = sdk.NewClient(viper.GetString("api-url"), viper.GetString("api-key"))
 	return nil
 }
 
