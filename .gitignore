@@ -20,9 +20,11 @@
 !Taskfile.yml
 !.github/dependabot.yml
 !.github/workflows/release_build.yml
+!.github/workflows/sonarcloud.yml
 !.github/workflows/test.yml
 !.goreleaser.yaml
 !goreleaser.Dockerfile
+!sonar-project.properties
 
 # ...even if they are in subdirectories
 !*/
