@@ -41,7 +41,7 @@ jobs:
 
       - name: Test without Reporting
         if: matrix.platform != 'ubuntu-latest'
-        run: go test -race
+        run: go test -race ./...
 
       - name: SonarCloud Scan
         if: matrix.platform == 'ubuntu-latest'
