@@ -7,6 +7,7 @@
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=TylerHendrickson_mydyndns&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=TylerHendrickson_mydyndns)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TylerHendrickson/mydyndns)](https://goreportcard.com/report/github.com/TylerHendrickson/mydyndns)
 [![Known Vulnerabilities](https://snyk.io/test/github/TylerHendrickson/mydyndns/badge.svg)](https://snyk.io/test/github/TylerHendrickson/mydyndns)
+[![GitHub license](https://img.shields.io/github/license/TylerHendrickson/mydyndns.svg)](https://github.com/TylerHendrickson/mydyndns/blob/master/LICENSE)
 
 A client for the mydyndns dynamic DNS service, providing an application library, CLI tools,
 and agent process for keeping DNS entries up-to-date.
