@@ -8,8 +8,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/TylerHendrickson/mydyndns)](https://goreportcard.com/report/github.com/TylerHendrickson/mydyndns)
 [![Known Vulnerabilities](https://snyk.io/test/github/TylerHendrickson/mydyndns/badge.svg)](https://snyk.io/test/github/TylerHendrickson/mydyndns)
 
-A client for the mydyndns dynamic DNS service, providing an application library, CLI tools, and agent process for
-keeping DNS entries up-to-date.
+A client for the mydyndns dynamic DNS service, providing an application library, CLI tools,
+and agent process for keeping DNS entries up-to-date.
 
 
 ## Features
@@ -55,26 +55,27 @@ $ mydyndns config write conf.yml --directory /var/mydyndns --defaults
 ##### Configuration sources
 
 In addition to configuration files, environment variables may be provided in place of file-based
-configuration directives, as well as command-line flags. Environment variables must be prefixed with `MYDYNDNS_`,
-be upper-cased, and use underscores instead of dashes.
+configuration directives, as well as command-line flags. Environment variables must be prefixed
+with `MYDYNDNS_`, be upper-cased, and use underscores instead of dashes.
 
-As an example, the following directives are equivalent means of providing a base URL for a remote MyDynDNS
-service API:
+As an example, the following directives are equivalent means of providing a base URL for a
+remote MyDynDNS service API:
 1. As a command-line flag: `--api-url=https://example.com`
 2. As an environment variable: `MYDYNDNS_API_URL=https://example.com`
-3. As a line in a (`toml`) configuration file: `api-url = https://example.com`
+3. As a line in a configuration file (e.g. `toml`): `api-url = https://example.com`
 
-Note that the above list is in order of precedence, e.g. a configuration directive provided as a command-line flag
-will take precedence over a conflicting environment variable, etc.
+Note that the above list is in order of precedence – a configuration directive provided
+as a command-line flag will take precedence over a conflicting environment variable, etc.
 
 
 ##### Notes:
 
-- By default, the CLI looks for a configuration file called `mydyndns.ext` in the current working directory,
-where `.ext` is any supported config file extension. The source directory and/or filename can be customized
-by providing the `--config-path` and/or `--config-file` CLI flags, respectively.
-- Configuration files generated with the `--defaults` CLI flag are not inherently valid and require customizations
-before they may be used successfully.
+- By default, the CLI looks for a configuration file called `mydyndns.ext` in the current working
+directory, where `.ext` is any supported config file extension. The source directory and/or
+filename can be customized by providing the `--config-path` and/or `--config-file` CLI flags,
+respectively.
+- Configuration files generated with the `--defaults` CLI flag are not inherently valid and
+require customizations before they may be used successfully.
 - See `mydyndns help config` for more information.
 
 
@@ -91,8 +92,9 @@ Help for every command is available by appending the `-h / --help` flag to any c
 
 #### CLI Agent Process
 
-The CLI provides support for a long-running (daemon) process that can be used as a local service for monitoring
-changes to the host's (dynamic) IP address and requesting the MyDynDNS service to update DNS records accordingly.
+The CLI provides support for a long-running (daemon) process that can be used as a local service
+for monitoring changes to the host's (dynamic) IP address and requesting the MyDynDNS service
+to update DNS records accordingly.
 
 To run in a terminal:
 ```cli
@@ -107,8 +109,8 @@ task: signal received: interrupt
 ##### Notes:
 - The amount of information logged by the agent can be controlled via the `-v / --log-verbosity` flag
 or by adjusting the `log-verbosity` config file directive.
-- The `SIGINT` signal ([`ctrl-c`](https://en.wikipedia.org/wiki/Control-C)) requests a graceful shutdown
-of the agent process.
+- The `SIGINT` signal ([`ctrl-c`](https://en.wikipedia.org/wiki/Control-C)) requests a graceful
+shutdown of the agent process.
 
 
 ### Client SDK
@@ -157,8 +159,8 @@ func main() {
 
 ### Agent Library
 
-The Agent behavior is available as an importable package that can be configured and executed from other libraries
-and applications.
+The Agent behavior is available as an importable package that can be configured and executed
+from other libraries and applications.
 
 ```go
 package main
@@ -202,11 +204,11 @@ func main() {
 
 The easiest way to install this program is to clone the repository, navigate to `mydyndns`,
 and run `go install ./cmd/mydyndns` from within the cloned repository.
-This will compile the proper binary for your operating system and place it in your Go binaries path
-(e.g. `$GOBIN`, `$GOPATH/bin`, etc.).
+This will compile the proper binary for your operating system and place it in your Go binaries
+path (e.g. `$GOBIN`, `$GOPATH/bin`, etc.).
 
-Alternatively, run `go install github.com/TylerHendrickson/mydyndns/cmd/mydyndns@latest` to install without
-cloning.
+Alternatively, run `go install github.com/TylerHendrickson/mydyndns/cmd/mydyndns@latest` to install
+without cloning.
 
 
 ### go get
@@ -218,13 +220,14 @@ to make this available for use in your own Go application.
 
 ### Precompiled Binary
 
-See the [releases page](https://github.com/TylerHendrickson/mydyndns/releases) to download the appropriate archive
-for your platform. You can find the latest release [here](https://github.com/TylerHendrickson/mydyndns/releases/latest).
+See the [releases page](https://github.com/TylerHendrickson/mydyndns/releases) to download
+the appropriate archive for your platform. You can find the latest release
+[here](https://github.com/TylerHendrickson/mydyndns/releases/latest).
 
 Example:
 
 ```cli
-$ wget https://github.com/TylerHendrickson/mydyndns/releases/download/0.1.8/mydyndns_0.1.8_Linux_arm64.tar.gz
+$ wget https://github.com/TylerHendrickson/mydyndns/releases/download/0.2.4/mydyndns_0.2.4_windows_arm64.zip
 $ tar xvfz mydyndns_*.tar.gz mydyndns
 $ mv ./mydyndns /usr/bin/mydyndns
 ```
@@ -256,14 +259,16 @@ services:
     restart: unless-stopped
 ```
 
-In this example, configuration is sourced from file within a volume mounted at `/config` in the container,
-e.g. `/config/mydyndns.toml`. However, all usual means of configuration are still supported;
-parameters may be provided via the `environment` section, as well as by passing additional flags
-in the `command` directive. Note that all environment variables must be prefixed with `MYDYNDNS_`.
+In this example, configuration is sourced from file within a volume mounted at `/config` in
+the container, e.g. `/config/mydyndns.toml`. However, all usual means of configuration are
+still supported; parameters may be provided via the `environment` section, as well as by passing
+additional flags in the `command` directive. Note that all environment variables must be prefixed
+with `MYDYNDNS_`.
 
 
 ## Developing
 
-This project uses [`Taskfile.yml`](https://taskfile.dev/) to manage common development tasks (instead of using `make`).
-[Install Task](https://taskfile.dev/#/installation), then run `task --list` to see a list of available tasks
-for this project, or `task --help` for more information about using this system.
+This project uses [`Taskfile.yml`](https://taskfile.dev/) to manage common development tasks
+(instead of using `make`). [Install Task](https://taskfile.dev/#/installation), then run
+`task --list` to see a list of available tasks for this project, or `task --help` for more
+information about using this system.
