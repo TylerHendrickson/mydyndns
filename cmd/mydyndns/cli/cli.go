@@ -3,6 +3,7 @@ package cli
 
 import (
 	"context"
+	"runtime/debug"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -21,6 +22,14 @@ var (
 	defaultPollInterval = time.Hour
 	minimumPollInterval = time.Second * 10
 )
+
+func init() {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return
+	}
+	Version = info.Main.Version
+}
 
 // Execute runs the mydyndns CLI application
 func Execute() error {
