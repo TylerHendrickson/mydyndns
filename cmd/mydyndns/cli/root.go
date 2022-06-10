@@ -29,7 +29,7 @@ refresh from and send updates to a remote DNS management service.`,
 
 	// Outputs
 	cmd.SetOut(cmd.OutOrStdout())
-	cmd.SetErr(cmd.OutOrStderr())
+	cmd.SetErr(cmd.ErrOrStderr())
 
 	// Global flags
 	cmd.PersistentFlags().String(configFileSettingKey, "",
