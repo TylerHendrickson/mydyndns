@@ -24,11 +24,9 @@ var (
 )
 
 func init() {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return
+	if info, ok := debug.ReadBuildInfo(); ok {
+		Version = info.Main.Version
 	}
-	Version = info.Main.Version
 }
 
 // Execute runs the mydyndns CLI application
