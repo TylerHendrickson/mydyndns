@@ -3,8 +3,6 @@
 [![GitHub release](https://img.shields.io/github/release/TylerHendrickson/mydyndns.svg)](https://GitHub.com/TylerHendrickson/mydyndns/releases/)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/TylerHendrickson/mydyndns/graphs/commit-activity)
 [![GitHub go.mod Go version of a Go module](https://img.shields.io/github/go-mod/go-version/TylerHendrickson/mydyndns.svg)](https://github.com/gomods/athens)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=TylerHendrickson_mydyndns&metric=coverage)](https://sonarcloud.io/summary/new_code?id=TylerHendrickson_mydyndns)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=TylerHendrickson_mydyndns&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=TylerHendrickson_mydyndns)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TylerHendrickson/mydyndns)](https://goreportcard.com/report/github.com/TylerHendrickson/mydyndns)
 [![GitHub license](https://img.shields.io/github/license/TylerHendrickson/mydyndns.svg)](https://github.com/TylerHendrickson/mydyndns/blob/master/LICENSE)
 [![Go Reference](https://pkg.go.dev/badge/github.com/TylerHendrickson/mydyndns.svg)](https://pkg.go.dev/github.com/TylerHendrickson/mydyndns)
