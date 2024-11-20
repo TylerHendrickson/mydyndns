@@ -33,3 +33,10 @@ jobs:
       - name: Test without Reporting (non-Linux only)
         if: matrix.platform != 'ubuntu-latest'
         run: go test -race ./...
+
+      - name: SonarCloud Scan
+        if: matrix.platform == 'ubuntu-latest'
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
