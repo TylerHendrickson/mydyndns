@@ -1,6 +1,6 @@
 module github.com/TylerHendrickson/mydyndns
 
-go 1.18
+go 1.23.3
 
 require (
 	github.com/go-kit/log v0.2.1
