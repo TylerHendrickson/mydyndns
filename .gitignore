@@ -23,7 +23,7 @@
 !.github/workflows/dependabot-auto-approve.yml
 !.github/workflows/dependency-review.yml
 !.github/workflows/qa.yml
-!.github/workflows/release_build.yml
+!.github/workflows/release.yml
 !.github/workflows/sonarcloud.yml
 !.github/workflows/test.yml
 !.goreleaser.yaml
